@@ -7,9 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+# Enhanced CORS for production deployment stability
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allows your Vercel frontend to communicate securely
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
