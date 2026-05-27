@@ -2,6 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
+// --- DEPLOYMENT CONFIGURATION ---
+// Replace the URL inside the quotes below with your actual live Render Web Service URL once you deploy it!
+// Example: "https://moodrhythm-backend.onrender.com"
+const BACKEND_API_URL = process.env.NODE_ENV === 'production' 
+  ? "https://your-render-backend-url-here.onrender.com" 
+  : "http://localhost:8000";
+
 const PLAYLIST_IDS = {
   happy: '4bexyPcwfp7h0kNvPOM1LD', 
   chill: '37i9dQZF1EVHGWrwldPRtj', 
@@ -147,7 +154,7 @@ function App() {
     });
 
     try {
-      const res = await fetch("http://localhost:8000/analyze-face", {
+      const res = await fetch(`${BACKEND_API_URL}/analyze-face`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(averages),
@@ -175,7 +182,7 @@ function App() {
     
     if (lastScanFeatures && finalMood) {
       try {
-        await fetch(`http://localhost:8000/save-feedback?confirmed_mood=${finalMood}`, {
+        await fetch(`${BACKEND_API_URL}/save-feedback?confirmed_mood=${finalMood}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(lastScanFeatures),
@@ -190,7 +197,7 @@ function App() {
   const handleTextAnalysis = async () => {
     setIsAnalyzing(true);
     try {
-      const res = await fetch("http://localhost:8000/analyze-text", {
+      const res = await fetch(`${BACKEND_API_URL}/analyze-text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: textInput }),
