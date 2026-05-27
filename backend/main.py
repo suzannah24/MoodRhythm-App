@@ -10,7 +10,7 @@ app = FastAPI()
 # Enhanced CORS for production deployment stability
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows your Vercel frontend to communicate securely
+    allow_origins=["*"],  # Allows your live Vercel frontend to communicate securely
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,7 +59,11 @@ async def save_feedback(data: FaceData, confirmed_mood: str):
                   f"{data.mouth_drop},{data.brow_v_left},{data.brow_v_right},{data.lip_dist},{data.jaw_dist}\n"
             f.write(row)
             
+        # --- EXPLICIT LOGGING FOR MANUAL EXTRACTION ---
         print(f"💾 TARGETED FEEDBACK LOGGED: Saved as {confirmed_mood.upper()}")
+        print(row.strip())  # Prints raw coordinates right into your Render log stream
+        # ----------------------------------------------
+        
         return {"status": "success"}
     except Exception as e:
         print(f"Feedback Error: {e}")
