@@ -6,7 +6,7 @@ import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 // Replace the URL inside the quotes below with your actual live Render Web Service URL once you deploy it!
 // Example: "https://moodrhythm-backend.onrender.com"
 const BACKEND_API_URL = process.env.NODE_ENV === 'production' 
-  ? "https://your-render-backend-url-here.onrender.com" 
+  ? "https://moodrhythm-backend.onrender.com" 
   : "http://localhost:8000";
 
 const PLAYLIST_IDS = {
