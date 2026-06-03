@@ -4,7 +4,6 @@ import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 // --- DEPLOYMENT CONFIGURATION ---
 // Replace the URL inside the quotes below with your actual live Render Web Service URL once you deploy it!
-// Example: "https://moodrhythm-backend.onrender.com"
 const BACKEND_API_URL = process.env.NODE_ENV === 'production' 
   ? "https://your-render-backend-url-here.onrender.com" 
   : "http://localhost:8000";
@@ -48,7 +47,7 @@ function App() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showCorrectionMenu, setShowCorrectionMenu] = useState(false);
   const [lastScanFeatures, setLastScanFeatures] = useState(null);
-  const [scanMethod, setScanMethod] = useState(null); // Tracks if user used 'face' or 'text'
+  const [scanMethod, setScanMethod] = useState(null); 
   
   const videoRef = useRef(null);
   const dataBuffer = useRef([]); 
@@ -70,11 +69,10 @@ function App() {
     initAI();
   }, []);
 
-  // Intercepting home navigation to force mandatory feedback validation
   const handleNewMoodClick = () => {
     if (scanMethod === 'face' && !feedbackSubmitted) {
       alert("⚠️ Please answer the feedback question first to help train the AI!");
-      return; // Blocks the execution from going back to home
+      return; 
     }
     goHome();
   };
@@ -177,7 +175,7 @@ function App() {
       
       setDetectedMood(data.detected_mood);
       setPlaylistCategory(MOOD_TO_PLAYLIST[data.detected_mood] || 'chill');
-      setConfidence(data.confidence);
+      setConfidence(data.confidence || 0);
       setLastScanFeatures(averages);
       setStep(5);
     } catch (e) { 
@@ -201,6 +199,7 @@ function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(lastScanFeatures),
         });
+        // Fixed JavaScript execution parameters here:
         console.log(`Saved features successfully under verified label: ${finalMood}`);
       } catch (e) {
         console.error("Failed to log targeted feedback", e);
@@ -227,7 +226,6 @@ function App() {
 
   return (
     <div className="App">
-      {/* Brand logo click validation added here too to prevent escaping */}
       <div className="brand-logo" onClick={handleNewMoodClick}>
         <div className="brand-dot"></div>MoodRhythm
       </div>
@@ -317,7 +315,6 @@ function App() {
               )}
             </div>
 
-            {/* --- FEEDBACK SECTION --- */}
             {scanMethod === 'face' && (
               <div className="feedback-container" style={{ margin: '20px 0', padding: '15px', border: feedbackSubmitted ? 'none' : '1px dashed #555', borderRadius: '8px' }}>
                 {!feedbackSubmitted ? (
@@ -355,7 +352,6 @@ function App() {
               </div>
             )}
 
-            {/* The primary navigation action button uses the custom validation handler */}
             <button className="btn-primary mt-25" onClick={handleNewMoodClick}>NEW MOOD</button>
           </div>
         </div>
