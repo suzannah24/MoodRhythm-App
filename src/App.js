@@ -47,7 +47,7 @@ function App() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showCorrectionMenu, setShowCorrectionMenu] = useState(false);
   const [lastScanFeatures, setLastScanFeatures] = useState(null);
-  const [scanMethod, setScanMethod] = useState(null); 
+  const [isFaceScan, setIsFaceScan] = useState(false); // Clear explicit flag for camera usage
   
   const videoRef = useRef(null);
   const dataBuffer = useRef([]); 
@@ -69,15 +69,15 @@ function App() {
     initAI();
   }, []);
 
-  const handleNewMoodClick = () => {
-    if (scanMethod === 'face' && !feedbackSubmitted) {
-      alert("⚠️ Please answer the feedback question first to help train the AI!");
+  // --- REBUILT POPUP INTERCEPTION ENGINE ---
+  const goHome = () => {
+    // If it was a face scan evaluation and they haven't submitted the feedback block yet, trap and alert!
+    if (isFaceScan && !feedbackSubmitted) {
+      alert("⚠️ Please answer the feedback question below first to help train the AI!");
       return; 
     }
-    goHome();
-  };
 
-  const goHome = () => {
+    // Runs original cleanup loop safely once condition passes
     stopCamera();
     setStep(1);
     setCountdown(null);
@@ -86,8 +86,9 @@ function App() {
     setShowCorrectionMenu(false);
     dataBuffer.current = [];
     setLastScanFeatures(null);
-    setScanMethod(null);
+    setIsFaceScan(false); // Reset validation flag
   };
+  // ----------------------------------------
 
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -133,7 +134,7 @@ function App() {
     setStep(3);
     setCountdown(3);
     dataBuffer.current = [];
-    setScanMethod('face');
+    setIsFaceScan(true); // Flag marked as true immediately when entering camera phase
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) videoRef.current.srcObject = stream;
@@ -199,7 +200,6 @@ function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(lastScanFeatures),
         });
-        // Fixed JavaScript execution parameters here:
         console.log(`Saved features successfully under verified label: ${finalMood}`);
       } catch (e) {
         console.error("Failed to log targeted feedback", e);
@@ -209,7 +209,7 @@ function App() {
 
   const handleTextAnalysis = async () => {
     setIsAnalyzing(true);
-    setScanMethod('text');
+    setIsFaceScan(false); // Explicitly ensure text analysis resets the camera condition tracker
     try {
       const res = await fetch(`${BACKEND_API_URL}/analyze-text`, {
         method: "POST",
@@ -226,7 +226,7 @@ function App() {
 
   return (
     <div className="App">
-      <div className="brand-logo" onClick={handleNewMoodClick}>
+      <div className="brand-logo" onClick={goHome}>
         <div className="brand-dot"></div>MoodRhythm
       </div>
       <div className="glow-bg"></div>
@@ -291,7 +291,7 @@ function App() {
         <div className="container">
           <div className="glass-card full-width">
             <h2 className="mood-title">{detectedMood} Vibe</h2>
-            {scanMethod === 'face' && (
+            {isFaceScan && (
               <p className="confidence-text">AI Confidence: {(confidence * 100).toFixed(1)}%</p>
             )}
             
@@ -315,44 +315,46 @@ function App() {
               )}
             </div>
 
-            {scanMethod === 'face' && (
-              <div className="feedback-container" style={{ margin: '20px 0', padding: '15px', border: feedbackSubmitted ? 'none' : '1px dashed #555', borderRadius: '8px' }}>
-                {!feedbackSubmitted ? (
-                  <>
-                    {!showCorrectionMenu ? (
-                      <>
-                        <p className="feedback-text" style={{ color: '#ffea00', fontWeight: 'bold', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>⚠️ Response Required</p>
-                        <p className="feedback-text">Does this match your {detectedMood} mood?</p>
-                        <div className="feedback-btn-group">
-                          <button className="feedback-btn feedback-btn-yes" onClick={() => handleFeedback(true)}>👍 Yes</button>
-                          <button className="feedback-btn feedback-btn-no" onClick={() => setShowCorrectionMenu(true)}>👎 No</button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="feedback-text">What was your actual mood?</p>
-                        <div className="feedback-btn-group correction-menu" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
-                          {['happy', 'sad', 'angry', 'neutral', 'surprise', 'fear', 'disgust'].map((mood) => (
-                            <button 
-                              key={mood} 
-                              className="toggle-btn" 
-                              style={{ padding: '8px 15px', textTransform: 'uppercase', fontSize: '12px' }}
-                              onClick={() => handleFeedback(false, mood)}
-                            >
-                              {mood}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <p className="thank-you-message">Thank you! Your expression was saved to train the AI. ✨</p>
-                )}
-              </div>
-            )}
+            <div className="feedback-container">
+              {isFaceScan && (
+                <div style={{ margin: '20px 0', padding: '15px', border: feedbackSubmitted ? 'none' : '1px dashed #555', borderRadius: '8px' }}>
+                  {!feedbackSubmitted ? (
+                    <>
+                      {!showCorrectionMenu ? (
+                        <>
+                          <div className="feedback-text" style={{ color: '#ffea00', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', marginBottom: '5px', letterSpacing: '1px' }}>⚠️ Response Required</div>
+                          <p className="feedback-text">Does this match your {detectedMood} mood?</p>
+                          <div className="feedback-btn-group">
+                            <button className="feedback-btn feedback-btn-yes" onClick={() => handleFeedback(true)}>👍 Yes</button>
+                            <button className="feedback-btn feedback-btn-no" onClick={() => setShowCorrectionMenu(true)}>👎 No</button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <p className="feedback-text">What was your actual mood?</p>
+                          <div className="feedback-btn-group correction-menu" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+                            {['happy', 'sad', 'angry', 'neutral', 'surprise', 'fear', 'disgust'].map((mood) => (
+                              <button 
+                                key={mood} 
+                                className="toggle-btn" 
+                                style={{ padding: '8px 15px', textTransform: 'uppercase', fontSize: '12px' }}
+                                onClick={() => handleFeedback(false, mood)}
+                              >
+                                {mood}
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <p className="thank-you-message">Thank you! Your expression was saved to train the AI. ✨</p>
+                  )}
+                </div>
+              )}
+            </div>
 
-            <button className="btn-primary mt-25" onClick={handleNewMoodClick}>NEW MOOD</button>
+            <button className="btn-primary mt-25" onClick={goHome}>NEW MOOD</button>
           </div>
         </div>
       )}
