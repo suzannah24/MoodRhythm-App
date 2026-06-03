@@ -6,14 +6,14 @@ import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 // Replace the URL inside the quotes below with your actual live Render Web Service URL once you deploy it!
 // Example: "https://moodrhythm-backend.onrender.com"
 const BACKEND_API_URL = process.env.NODE_ENV === 'production' 
-  ? "https://moodrhythm-backend.onrender.com" 
+  ? "https://your-render-backend-url-here.onrender.com" 
   : "http://localhost:8000";
 
 const PLAYLIST_IDS = {
   happy: '4bexyPcwfp7h0kNvPOM1LD', 
   chill: '37i9dQZF1EVHGWrwldPRtj', 
   sad: '37i9dQZF1EIg85EO6f7KwU',
-  angry: '37i9dQZF1EIhuCNl2WSFYd'   
+  angry: '37i9dQZF1EIhuCNl2WSFYd'
 };
 
 const MOOD_TO_PLAYLIST = {
@@ -48,6 +48,7 @@ function App() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showCorrectionMenu, setShowCorrectionMenu] = useState(false);
   const [lastScanFeatures, setLastScanFeatures] = useState(null);
+  const [scanMethod, setScanMethod] = useState(null); // Tracks if user used 'face' or 'text'
   
   const videoRef = useRef(null);
   const dataBuffer = useRef([]); 
@@ -69,6 +70,15 @@ function App() {
     initAI();
   }, []);
 
+  // Intercepting home navigation to force mandatory feedback validation
+  const handleNewMoodClick = () => {
+    if (scanMethod === 'face' && !feedbackSubmitted) {
+      alert("⚠️ Please answer the feedback question first to help train the AI!");
+      return; // Blocks the execution from going back to home
+    }
+    goHome();
+  };
+
   const goHome = () => {
     stopCamera();
     setStep(1);
@@ -78,6 +88,7 @@ function App() {
     setShowCorrectionMenu(false);
     dataBuffer.current = [];
     setLastScanFeatures(null);
+    setScanMethod(null);
   };
 
   const stopCamera = () => {
@@ -124,6 +135,7 @@ function App() {
     setStep(3);
     setCountdown(3);
     dataBuffer.current = [];
+    setScanMethod('face');
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) videoRef.current.srcObject = stream;
@@ -198,6 +210,7 @@ function App() {
 
   const handleTextAnalysis = async () => {
     setIsAnalyzing(true);
+    setScanMethod('text');
     try {
       const res = await fetch(`${BACKEND_API_URL}/analyze-text`, {
         method: "POST",
@@ -214,7 +227,8 @@ function App() {
 
   return (
     <div className="App">
-      <div className="brand-logo" onClick={goHome}>
+      {/* Brand logo click validation added here too to prevent escaping */}
+      <div className="brand-logo" onClick={handleNewMoodClick}>
         <div className="brand-dot"></div>MoodRhythm
       </div>
       <div className="glow-bg"></div>
@@ -279,7 +293,9 @@ function App() {
         <div className="container">
           <div className="glass-card full-width">
             <h2 className="mood-title">{detectedMood} Vibe</h2>
-            <p className="confidence-text">AI Confidence: {(confidence * 100).toFixed(1)}%</p>
+            {scanMethod === 'face' && (
+              <p className="confidence-text">AI Confidence: {(confidence * 100).toFixed(1)}%</p>
+            )}
             
             <div className="toggle-group">
               <button onClick={() => setPlayerType('spotify')} className={playerType === 'spotify' ? 'toggle-btn active' : 'toggle-btn'}>Spotify</button>
@@ -301,41 +317,46 @@ function App() {
               )}
             </div>
 
-            <div className="feedback-container">
-              {!feedbackSubmitted ? (
-                <>
-                  {!showCorrectionMenu ? (
-                    <>
-                      <p className="feedback-text">Does this match your {detectedMood} mood?</p>
-                      <div className="feedback-btn-group">
-                        <button className="feedback-btn feedback-btn-yes" onClick={() => handleFeedback(true)}>👍 Yes</button>
-                        <button className="feedback-btn feedback-btn-no" onClick={() => setShowCorrectionMenu(true)}>👎 No</button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <p className="feedback-text">What was your actual mood?</p>
-                      <div className="feedback-btn-group correction-menu" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
-                        {['happy', 'sad', 'angry', 'neutral', 'surprise', 'fear', 'disgust'].map((mood) => (
-                          <button 
-                            key={mood} 
-                            className="toggle-btn" 
-                            style={{ padding: '8px 15px', textTransform: 'uppercase', fontSize: '12px' }}
-                            onClick={() => handleFeedback(false, mood)}
-                          >
-                            {mood}
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </>
-              ) : (
-                <p className="thank-you-message">Thank you! Your expression was saved to train the AI. ✨</p>
-              )}
-            </div>
+            {/* --- FEEDBACK SECTION --- */}
+            {scanMethod === 'face' && (
+              <div className="feedback-container" style={{ margin: '20px 0', padding: '15px', border: feedbackSubmitted ? 'none' : '1px dashed #555', borderRadius: '8px' }}>
+                {!feedbackSubmitted ? (
+                  <>
+                    {!showCorrectionMenu ? (
+                      <>
+                        <p className="feedback-text" style={{ color: '#ffea00', fontWeight: 'bold', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>⚠️ Response Required</p>
+                        <p className="feedback-text">Does this match your {detectedMood} mood?</p>
+                        <div className="feedback-btn-group">
+                          <button className="feedback-btn feedback-btn-yes" onClick={() => handleFeedback(true)}>👍 Yes</button>
+                          <button className="feedback-btn feedback-btn-no" onClick={() => setShowCorrectionMenu(true)}>👎 No</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="feedback-text">What was your actual mood?</p>
+                        <div className="feedback-btn-group correction-menu" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+                          {['happy', 'sad', 'angry', 'neutral', 'surprise', 'fear', 'disgust'].map((mood) => (
+                            <button 
+                              key={mood} 
+                              className="toggle-btn" 
+                              style={{ padding: '8px 15px', textTransform: 'uppercase', fontSize: '12px' }}
+                              onClick={() => handleFeedback(false, mood)}
+                            >
+                              {mood}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <p className="thank-you-message">Thank you! Your expression was saved to train the AI. ✨</p>
+                )}
+              </div>
+            )}
 
-            <button className="btn-primary mt-25" onClick={goHome}>NEW MOOD</button>
+            {/* The primary navigation action button uses the custom validation handler */}
+            <button className="btn-primary mt-25" onClick={handleNewMoodClick}>NEW MOOD</button>
           </div>
         </div>
       )}
