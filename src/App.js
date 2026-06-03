@@ -12,7 +12,8 @@ const BACKEND_API_URL = process.env.NODE_ENV === 'production'
 const PLAYLIST_IDS = {
   happy: '4bexyPcwfp7h0kNvPOM1LD', 
   chill: '37i9dQZF1EVHGWrwldPRtj', 
-  sad: '37i9dQZF1EIg85EO6f7KwU'    
+  sad: '37i9dQZF1EIg85EO6f7KwU',
+  angry: '37i9dQZF1EIhuCNl2WSFYd'   
 };
 
 const MOOD_TO_PLAYLIST = {
@@ -20,7 +21,7 @@ const MOOD_TO_PLAYLIST = {
   surprise: 'happy',
   neutral: 'chill',
   sad: 'sad',
-  angry: 'sad',
+  angry: 'angry',
   fear: 'sad',
   disgust: 'sad'
 };
@@ -29,7 +30,8 @@ const INSTRUMENTAL_MUSIC = {
   happy: process.env.PUBLIC_URL + '/music/happy.mp3',
   sad: process.env.PUBLIC_URL + '/music/sad.mp3',
   chill: process.env.PUBLIC_URL + '/music/chill.mp3',
-  hype: process.env.PUBLIC_URL + '/music/happy.mp3'
+  hype: process.env.PUBLIC_URL + '/music/happy.mp3',
+  angry: process.env.PUBLIC_URL + '/music/angry.mp3'
 };
 
 function App() {
