@@ -341,7 +341,7 @@ function App() {
               {playerType === 'spotify' ? (
                 <iframe 
                   title="Spotify Mood Playlist"
-                  src={`https://open.spotify.com/embed/playlist/$${PLAYLIST_IDS[playlistCategory] || PLAYLIST_IDS.chill}?utm_source=generator&theme=0`} 
+                  src={`https://open.spotify.com/embed/playlist/${PLAYLIST_IDS[playlistCategory] || PLAYLIST_IDS.chill}?utm_source=generator&theme=0`} 
                   width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"
                 ></iframe>
               ) : (
