@@ -206,58 +206,35 @@ function App() {
     }
   };
 
-  const handleTextAnalysis = async () => {
+const handleTextAnalysis = () => {
     setIsAnalyzing(true);
-    setIsFaceScan(false); 
+    setIsFaceScan(false); // Explicitly ensure text analysis resets the camera condition tracker
     
+    // Normalize user's typed text directly on the client side
     const cleanInput = textInput.toLowerCase().trim();
+    console.log("Processing client-side input string:", cleanInput);
 
-    try {
-      const res = await fetch(`${BACKEND_API_URL}/analyze-text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: textInput }),
-      });
-      const data = await res.json();
-      
-      const rawMood = data.detected_mood || data.mood || 'neutral';
-      const cleanMood = String(rawMood).toLowerCase().trim();
-      
-      setDetectedMood(cleanMood);
-
-      // Explicit logic matching framework for prompt evaluations
-      if (cleanInput.includes('happy') || cleanInput.includes('joy')) {
-        setPlaylistCategory('happy');
-      } else if (cleanInput.includes('sad') || cleanInput.includes('depress')) {
-        setPlaylistCategory('sad');
-      } else if (cleanInput.includes('angry') || cleanInput.includes('rage')) {
-        setPlaylistCategory('angry');
-      } else if (cleanInput.includes('stress') || cleanInput.includes('chill') || cleanInput.includes('neutral')) {
-        setPlaylistCategory('chill');
-      } else {
-        setPlaylistCategory(MOOD_TO_PLAYLIST[cleanMood] || 'chill');
-      }
-      
-      setStep(5);
-    } catch (e) { 
-      console.error("Text Sentiment Analysis Pipeline Failure:", e);
-      
-      // Safety client-side processing loop if backend connectivity falls out
-      if (cleanInput.includes('happy') || cleanInput.includes('joy')) {
-        setDetectedMood('happy');
-        setPlaylistCategory('happy');
-      } else if (cleanInput.includes('sad')) {
-        setDetectedMood('sad');
-        setPlaylistCategory('sad');
-      } else if (cleanInput.includes('angry') || cleanInput.includes('rage')) {
-        setDetectedMood('angry');
-        setPlaylistCategory('angry');
-      } else {
-        setDetectedMood('neutral');
-        setPlaylistCategory('chill');
-      }
-      setStep(5); 
+    // Strict local heuristic matching rules
+    if (cleanInput.includes('happy') || cleanInput.includes('joy') || cleanInput.includes('excited')) {
+      setDetectedMood('happy');
+      setPlaylistCategory('happy');
+    } else if (cleanInput.includes('sad') || cleanInput.includes('depress') || cleanInput.includes('cry')) {
+      setDetectedMood('sad');
+      setPlaylistCategory('sad');
+    } else if (cleanInput.includes('angry') || cleanInput.includes('rage') || cleanInput.includes('mad')) {
+      setDetectedMood('angry');
+      setPlaylistCategory('angry');
+    } else if (cleanInput.includes('stress') || cleanInput.includes('chill') || cleanInput.includes('neutral')) {
+      setDetectedMood('chill');
+      setPlaylistCategory('chill');
+    } else {
+      // Default fallback state if keywords are unmapped
+      setDetectedMood('neutral');
+      setPlaylistCategory('chill');
     }
+
+    // Direct routing switch to stage dashboard
+    setStep(5);
     setIsAnalyzing(false);
   };
 
