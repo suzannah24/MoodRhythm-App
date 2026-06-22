@@ -3,7 +3,6 @@ import './App.css';
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 
 // --- DEPLOYMENT CONFIGURATION ---
-// Replace the URL inside the quotes below with your actual live Render Web Service URL once you deploy it!
 const BACKEND_API_URL = process.env.NODE_ENV === 'production' 
   ? "https://moodrhythm-backend.onrender.com" 
   : "http://localhost:8000";
@@ -17,10 +16,14 @@ const PLAYLIST_IDS = {
 
 const MOOD_TO_PLAYLIST = {
   happy: 'happy',
+  joy: 'happy',
   surprise: 'happy',
   neutral: 'chill',
+  chill: 'chill',
   sad: 'sad',
+  depression: 'sad',
   angry: 'angry',
+  stress: 'angry',
   fear: 'sad',
   disgust: 'sad'
 };
@@ -47,7 +50,7 @@ function App() {
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [showCorrectionMenu, setShowCorrectionMenu] = useState(false);
   const [lastScanFeatures, setLastScanFeatures] = useState(null);
-  const [isFaceScan, setIsFaceScan] = useState(false); // Clear explicit flag for camera usage
+  const [isFaceScan, setIsFaceScan] = useState(false);
   
   const videoRef = useRef(null);
   const dataBuffer = useRef([]); 
@@ -69,15 +72,11 @@ function App() {
     initAI();
   }, []);
 
-  // --- REBUILT POPUP INTERCEPTION ENGINE ---
   const goHome = () => {
-    // If it was a face scan evaluation and they haven't submitted the feedback block yet, trap and alert!
     if (isFaceScan && !feedbackSubmitted) {
       alert("⚠️ Please answer the feedback question below first to help train the AI!");
       return; 
     }
-
-    // Runs original cleanup loop safely once condition passes
     stopCamera();
     setStep(1);
     setCountdown(null);
@@ -86,9 +85,8 @@ function App() {
     setShowCorrectionMenu(false);
     dataBuffer.current = [];
     setLastScanFeatures(null);
-    setIsFaceScan(false); // Reset validation flag
+    setIsFaceScan(false);
   };
-  // ----------------------------------------
 
   const stopCamera = () => {
     if (videoRef.current && videoRef.current.srcObject) {
@@ -134,7 +132,7 @@ function App() {
     setStep(3);
     setCountdown(3);
     dataBuffer.current = [];
-    setIsFaceScan(true); // Flag marked as true immediately when entering camera phase
+    setIsFaceScan(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       if (videoRef.current) videoRef.current.srcObject = stream;
@@ -174,8 +172,9 @@ function App() {
       });
       const data = await res.json();
       
-      setDetectedMood(data.detected_mood);
-      setPlaylistCategory(MOOD_TO_PLAYLIST[data.detected_mood] || 'chill');
+      const cleanMood = data.detected_mood ? data.detected_mood.toLowerCase().trim() : 'neutral';
+      setDetectedMood(cleanMood);
+      setPlaylistCategory(MOOD_TO_PLAYLIST[cleanMood] || 'chill');
       setConfidence(data.confidence || 0);
       setLastScanFeatures(averages);
       setStep(5);
@@ -209,7 +208,7 @@ function App() {
 
   const handleTextAnalysis = async () => {
     setIsAnalyzing(true);
-    setIsFaceScan(false); // Explicitly ensure text analysis resets the camera condition tracker
+    setIsFaceScan(false); 
     try {
       const res = await fetch(`${BACKEND_API_URL}/analyze-text`, {
         method: "POST",
@@ -217,10 +216,17 @@ function App() {
         body: JSON.stringify({ text: textInput }),
       });
       const data = await res.json();
-      setDetectedMood(data.detected_mood);
-      setPlaylistCategory(MOOD_TO_PLAYLIST[data.detected_mood] || 'chill');
+      
+      const cleanMood = data.detected_mood ? data.detected_mood.toLowerCase().trim() : 'neutral';
+      setDetectedMood(cleanMood);
+      setPlaylistCategory(MOOD_TO_PLAYLIST[cleanMood] || 'chill');
       setStep(5);
-    } catch (e) { setDetectedMood('chill'); setStep(5); }
+    } catch (e) { 
+      console.error("Text Backend Error:", e);
+      setDetectedMood('neutral'); 
+      setPlaylistCategory('chill');
+      setStep(5); 
+    }
     setIsAnalyzing(false);
   };
 
@@ -290,7 +296,7 @@ function App() {
       {step === 5 && (
         <div className="container">
           <div className="glass-card full-width">
-            <h2 className="mood-title">{detectedMood} Vibe</h2>
+            <h2 className="mood-title" style={{ textTransform: 'uppercase' }}>{detectedMood} Vibe</h2>
             {isFaceScan && (
               <p className="confidence-text">AI Confidence: {(confidence * 100).toFixed(1)}%</p>
             )}
@@ -304,13 +310,13 @@ function App() {
               {playerType === 'spotify' ? (
                 <iframe 
                   title="Spotify Mood Playlist"
-                  src={`https://open.spotify.com/embed/playlist/${PLAYLIST_IDS[playlistCategory]}?utm_source=generator&theme=0`} 
+                  src={`https://open.spotify.com/embed/playlist/$${PLAYLIST_IDS[playlistCategory] || PLAYLIST_IDS.chill}?utm_source=generator&theme=0`} 
                   width="100%" height="352" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"
                 ></iframe>
               ) : (
                 <div className="local-player">
                   <p>Playing {playlistCategory} Instrumental...</p>
-                  <audio controls autoPlay src={INSTRUMENTAL_MUSIC[playlistCategory]} style={{ width: '100%' }} />
+                  <audio controls autoPlay src={INSTRUMENTAL_MUSIC[playlistCategory] || INSTRUMENTAL_MUSIC.chill} style={{ width: '100%' }} />
                 </div>
               )}
             </div>
