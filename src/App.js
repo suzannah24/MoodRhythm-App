@@ -206,9 +206,9 @@ function App() {
     }
   };
 
-  const handleTextAnalysis = async () => {
+const handleTextAnalysis = async () => {
     setIsAnalyzing(true);
-    setIsFaceScan(false); 
+    setIsFaceScan(false); // Explicitly ensure text analysis resets the camera condition tracker
     try {
       const res = await fetch(`${BACKEND_API_URL}/analyze-text`, {
         method: "POST",
@@ -217,12 +217,35 @@ function App() {
       });
       const data = await res.json();
       
-      const cleanMood = data.detected_mood ? data.detected_mood.toLowerCase().trim() : 'neutral';
+      // 1. Extract the string safely from the backend response payload
+      // (Handles both 'detected_mood' and a generic 'mood' key fallback)
+      const rawMood = data.detected_mood || data.mood || 'neutral';
+      
+      // 2. Normalize the string to lowercase and remove accidental whitespace
+      const cleanMood = String(rawMood).toLowerCase().trim();
+      
+      console.log("Normalized Text Sentiment Backend Result:", cleanMood);
+      
+      // 3. Update the display label state
       setDetectedMood(cleanMood);
-      setPlaylistCategory(MOOD_TO_PLAYLIST[cleanMood] || 'chill');
+      
+      // 4. Determine the playlist target category matching your requirements
+      if (cleanMood.includes('happy') || cleanMood.includes('joy')) {
+        setPlaylistCategory('happy');
+      } else if (cleanMood.includes('sad') || cleanMood.includes('depress')) {
+        setPlaylistCategory('sad');
+      } else if (cleanMood.includes('angry') || cleanMood.includes('rage')) {
+        setPlaylistCategory('angry');
+      } else if (cleanMood.includes('stress') || cleanMood.includes('chill') || cleanMood.includes('neutral')) {
+        setPlaylistCategory('chill');
+      } else {
+        // Safe mapping lookup fallback gate
+        setPlaylistCategory(MOOD_TO_PLAYLIST[cleanMood] || 'chill');
+      }
+      
       setStep(5);
     } catch (e) { 
-      console.error("Text Backend Error:", e);
+      console.error("Text Sentiment Analysis Pipeline Failure:", e);
       setDetectedMood('neutral'); 
       setPlaylistCategory('chill');
       setStep(5); 
